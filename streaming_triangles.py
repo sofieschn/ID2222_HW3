@@ -1,5 +1,6 @@
 import os
 import random
+import time
 from collections import defaultdict
 
 class StreamingTriangles:
@@ -17,19 +18,18 @@ class StreamingTriangles:
 
         # Update adjacency list
         self.adjacency_list[u].add(v)
-        self.adjacency_list[v].add(u)
 
         # Update wedges in the wedge reservoir that are closed by the new edge
         for i, wedge in enumerate(self.wedge_reservoir):
-            x, y, z = wedge
-            if (u == x and v == y) or (u == y and v == x) or (u == x and v == z) or (u == z and v == x) or (u == y and v == z) or (u == z and v == y):
+            x, y = wedge
+            if (x == u and v in self.adjacency_list[y]) or (y == u and v in self.adjacency_list[x]):
                 self.is_closed[i] = True
 
         # Reservoir sampling for edges
         if len(self.edge_reservoir) < self.edge_reservoir_size:
             self.edge_reservoir.append(edge)
         else:
-            replace_index = random.randint(0, len(self.edge_reservoir))
+            replace_index = random.randint(0, len(self.edge_reservoir) - 1)
             if replace_index < self.edge_reservoir_size:
                 self.edge_reservoir[replace_index] = edge
 
@@ -37,14 +37,14 @@ class StreamingTriangles:
         new_wedges = []
         for existing_edge in self.edge_reservoir:
             x, y = existing_edge
-            if u == x or u == y:
-                third_vertex = y if u == x else x
-                if third_vertex != v:
-                    new_wedges.append((u, v, third_vertex))
-            if v == x or v == y:
-                third_vertex = y if v == x else x
-                if third_vertex != u:
-                    new_wedges.append((v, u, third_vertex))
+            if u == x and v != y:
+                new_wedges.append((v, y))
+            elif u == y and v != x:
+                new_wedges.append((v, x))
+            elif v == x and u != y:
+                new_wedges.append((u, y))
+            elif v == y and u != x:
+                new_wedges.append((u, x))
 
         self.total_wedges += len(new_wedges)
 
@@ -54,15 +54,15 @@ class StreamingTriangles:
                 self.wedge_reservoir.append(wedge)
                 self.is_closed.append(False)
             else:
-                replace_index = random.randint(0, len(self.wedge_reservoir))
+                replace_index = random.randint(0, len(self.wedge_reservoir) - 1)
                 if replace_index < self.wedge_reservoir_size:
                     self.wedge_reservoir[replace_index] = wedge
                     self.is_closed[replace_index] = False
 
     def estimate(self):
         closed_wedges = sum(self.is_closed)
-        transitivity = 3 * closed_wedges / len(self.wedge_reservoir) if self.wedge_reservoir else 0
-        estimated_triangles = transitivity * self.total_wedges / 3 if self.total_wedges > 0 else 0
+        transitivity = (3 * closed_wedges / len(self.wedge_reservoir)) if self.wedge_reservoir else 0
+        estimated_triangles = (transitivity * self.total_wedges / 3) if self.total_wedges > 0 else 0
         return transitivity, estimated_triangles
 
 def read_edges(file_path):
@@ -105,12 +105,22 @@ if __name__ == "__main__":
     # Initialize the streaming triangles algorithm
     streaming_algo = StreamingTriangles(edge_reservoir_size=1000, wedge_reservoir_size=1000)
 
+    # Measure the start time
+    start_time = time.time()
+
     # Simulate the streaming process
     print("Processing edges...")
     for edge in edges:
         streaming_algo.update(edge)
 
+    # Measure the end time
+    end_time = time.time()
+
     # Get the estimates
     transitivity, triangles = streaming_algo.estimate()
     print(f"Estimated Transitivity: {transitivity}")
     print(f"Estimated Triangles: {triangles}")
+
+    # Calculate and print the runtime
+    runtime = end_time - start_time
+    print(f"Runtime: {runtime:.4f} seconds")
