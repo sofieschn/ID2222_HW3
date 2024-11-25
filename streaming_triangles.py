@@ -20,6 +20,8 @@ class StreamingTriangles:
         self.is_closed = []  # Tracks whether a wedge in wedge_reservoir forms a triangle.
         self.total_wedges = 0  # Tracks the total number of wedges formed, regardless of sampling.
         self.adjacency_list = defaultdict(set)  # A dictionary where each node maps to its set of neighbors, representing the graph.
+        self.edge_count = 0  # Counter to track edges processed for testing 
+
 
     def update(self, edge):
         """
@@ -28,6 +30,12 @@ class StreamingTriangles:
         """
         # A tuple (u, v) representing a new edge in the stream
         u, v = edge
+        # just test to se processing is working fine
+        if self.edge_count < 20:
+            print(f"Edge {self.edge_count + 1}: {edge}")
+        self.edge_count += 1
+
+
 
         # Update adjacency list. This step ensures the graph structure is updated for efficient neighbor lookups.
         self.adjacency_list[u].add(v)
@@ -45,7 +53,7 @@ class StreamingTriangles:
             (b == v and u in self.adjacency_list[a]):
                 self.is_closed[i] = True # if we find a match, aka (u, v) completed wedge (a, b) to a triangle, we will set the status of this wedge to closed = true.
 
-        # ---- now we want to add the edge to the reservoir for future data stream checks 
+        # ---- here we want to add the edge to the reservoir for data stream checks (part 1) 
 
         # Reservoir sampling for edges
         if len(self.edge_reservoir) < self.se: # check if the reservoir size is smaller than the max size (1000)
@@ -133,8 +141,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Initialize the streaming triangles algorithm
-    se = 1000  # Edge reservoir size
-    sw = 1000  # Wedge reservoir size
+    se = 10000  # Edge reservoir size
+    sw = 10000  # Wedge reservoir size
     streaming_algo = StreamingTriangles(se, sw)
 
     # Measure the start time
