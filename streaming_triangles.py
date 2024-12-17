@@ -141,8 +141,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Initialize the streaming triangles algorithm
-    se = 10000  # Edge reservoir size
-    sw = 10000  # Wedge reservoir size
+    se = 1000  # Edge reservoir size
+    sw = 1000  # Wedge reservoir size
     streaming_algo = StreamingTriangles(se, sw)
 
     # Measure the start time
